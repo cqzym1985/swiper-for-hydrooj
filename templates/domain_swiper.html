@@ -1,39 +1,47 @@
 {% extends "domain_base.html" %}
 {% block domain_content %}
 <div class="section">
-  <div class="section__body typo">
+  <div class="section__header">
+    <h1 class="section__title">{{ _('domain_swiper') }}</h1>
+  </div>
+  <div class="section__body">
     <form method="post">
-    <div class="row">
-      <div class="medium-10 columns form__item">
-        <label class="checkbox">
-          <input type="checkbox" name="loop" value="on" class="checkbox"
-            {%- if ssdict.loop %} checked{% endif -%}
-          >{{ _('swiper_loop') }}
-        </label>
-        <label class="checkbox">
-          <input type="checkbox" name="autoplay" value="on" class="checkbox"
-          {%- if ssdict.autoplay %} checked{% endif -%}
-          >{{ _('swiper_autoplay') }}
-        </label>
-        <label>
-          <p>{{ _('swiper_interval') }}（以毫秒为单位, 勾选{{ _('swiper_autoplay') }}后生效）</p>
-          <input 
-            name="interval" placeholder="以毫秒为单位"
-            value="{{ ssdict.interval|default('') }}"
-            class="textbox" autofocus>
-        </label>
-        <label>
-          {{_('swiper_config')}}
-          <textarea id="config" data-json name="value" placeholder="" class="textbox">{% if value %}{{ value }}{% else %}{% include 'swiper_default.json' %}{% endif %}</textarea>
-        </label>
-        <pre class="help-text" id="info"></pre>
+      <div class="row">
+        {{ form.form_checkbox({
+              name:'loop',
+              placeholder: _('循环播放'),
+              value:ssdict.loop|default(true),
+              columns: 2,
+              row: false
+        })}}
+        {{ form.form_checkbox({
+              name:'autoplay',
+              placeholder: _('自动播放'), 
+              value:ssdict.autoplay|default(true),
+              columns: 2,
+              row: false
+        })}}
       </div>
-    </div> 
-    <div class="row">
-      <div class="medium-10 columns form__item end">
-        <button id="submit" value="update" class="rounded primary button" type="submit">{%if initialize %}{{_('initialize')}}{% else %}{{ _('Save All Changes') }}{% endif %}</button>
+      {{ form.form_text({
+            name: 'interval',
+            label: _('播放间隔'),
+            placeholder: _('以毫秒为单位'),
+            value: ssdict.interval|default(5000),
+            help_text: _('以毫秒为单位, 勾选自动播放后生效')
+      })}}
+      <div class="row">
+        <div class="medium-10 columns">
+          <label>
+            {{_('详细配置')}}
+            <textarea id="config" data-json name="value" placeholder="" class="textbox">{% if value %}{{ value }}{% else %}{% include 'swiper_default.json' %}{% endif %}</textarea>
+          </label>
+        </div>
       </div>
-    </div>
+      <div class="row">
+        <div class="columns">
+          <button type="submit" class="rounded primary button">{% if initialize %}{{_('初始化')}}{% else %}{{ _('Save All Changes') }}{% endif %}</button>
+        </div>
+      </div>
     </form>
   </div>
 </div>

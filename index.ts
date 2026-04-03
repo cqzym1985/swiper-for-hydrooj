@@ -1,57 +1,56 @@
-import { db, PERM, Handler, Context,Types,param,ValidationError,} from 'hydrooj';
+import { db, PERM, Handler, Context, Types, param, ValidationError, query } from 'hydrooj';
 
 const coll = db.collection('swiper');
 
-async function getSwiper(domainId) {
-    const data = await coll.findOne({ domainId: domainId });
+async function getSwiper(domainId: string) {
+    const data = await coll.findOne({ domainId });
     if (!data) return [null, null];
-    else{
-        const sdocs = await data['config'];
-        const ssdict = {
-            loop: data['loop'],
-            autoplay: data['autoplay'],
-            interval: data['interval'],
-        };
-        return [sdocs, ssdict];
-    }
+    const sdocs = data['config'];
+    const ssdict = {
+        loop: data['loop'],
+        autoplay: data['autoplay'],
+        interval: data['interval'],
+    };
+    return [sdocs, ssdict];
 }
 
-async function setSwiper(domainId, sdocs, ssdict) {
-    await coll.updateOne({ domainId: domainId }, {
+async function setSwiper(domainId: string, sdocs: any[], ssdict: { loop: boolean; autoplay: boolean; interval: number }) {
+    await coll.updateOne({ domainId }, {
         $set: { loop: ssdict.loop, autoplay: ssdict.autoplay, interval: ssdict.interval,config: sdocs },
     }, { upsert: true });
 }
+
 class DomainSwiperHandler extends Handler {
-    async prepare({ domainId }) {
-        this.checkPerm(PERM.PERM_EDIT_DOMAIN);
-        this.domain = domainId;
-    }
-    async get() {
-        const [sdocs, ssdict] = await getSwiper(this.domain);
+    async get(domainId: string) {
+        const [sdocs, ssdict] = await getSwiper( domainId );
         if (!sdocs) {
-            this.response.template = 'domain_swiper.html';
-            this.response.body = {initialize:true, domainId: this.domain, ssdict, value: '' };
+            this.response.body = {
+                initialize: true,
+                domainId,
+                ssdict: { loop: true, autoplay: true, interval: 5000 },
+                value: ''
+            };
         }
         else {
-            this.response.template = 'domain_swiper.html';
-            let value=JSON.stringify(sdocs, null, 2)
-            this.response.body = { domainId: this.domain, ssdict, value};
+            const value=JSON.stringify(sdocs, null, 2);
+            this.response.body = { domainId, ssdict, value};
         }
+        this.response.template = 'domain_swiper.html';
     }
     
     @param('loop', Types.Boolean)
     @param('autoplay', Types.Boolean)
     @param('interval', Types.Int)
     @param('value', Types.Content)
-    async post(domainId: String,loop: Boolean, autoplay: Boolean, interval: number, value: string) {
-        let sdocs=[];
+    async post(domainId: string, loop: boolean, autoplay: boolean, interval: number, value: string) {
+        let sdocs: any[] = [];
         try{
             sdocs=JSON.parse(value);
         }catch(e){
             throw new ValidationError('config', null, e.message);
         }
         await setSwiper(domainId, sdocs, { loop, autoplay, interval });
-        this.response.redirect = this.url('domain_swiper', { domainId: domainId });
+        this.response.redirect = this.url('domain_swiper');
     }
 }
 
@@ -59,24 +58,11 @@ export async function apply(ctx: Context) {
     ctx.withHandlerClass('HomeHandler', (HomeHandler) => {
         HomeHandler.prototype.getSwiper = getSwiper;
     });
+
+    ctx.Route('domain_swiper','/domain/swiper', DomainSwiperHandler,PERM.PERM_EDIT_DOMAIN);
     ctx.injectUI('DomainManage', 'domain_swiper',{family: 'Properties', icon: 'info' });
-    ctx.Route('domain_swiper','/domain/swiper', DomainSwiperHandler,);
-    ctx.i18n.load('zh',{
-        'swiper': '轮播图',
-        'initialize': '初始化',
-        'domain_swiper': '轮播图配置',
-        'swiper_loop': '循环播放',
-        'swiper_autoplay': '自动播放',
-        'swiper_interval': '播放间隔',
-        'swiper_config': '详细配置',
+    ctx.i18n.load('zh', {
+        domain_swiper: '轮播图配置',
     });
-    ctx.i18n.load('en',{
-        'swiper': 'Swiper',
-        'initialize': 'Initialize',
-        'domain_swiper': 'Swiper Configuration',
-        'swiper_loop': 'Loop',
-        'swiper_autoplay': 'Autoplay',
-        'swiper_interval': 'Interval',
-        'swiper_config': 'Swiper Config',
-    });
+
 }
